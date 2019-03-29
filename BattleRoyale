@@ -1,0 +1,342 @@
+import java.util.Scanner;
+import java.io.File;
+
+/**
+ * BattleRoyale4Formatted.java
+ * @version 1.0
+ * @author Kevin Liu
+ * @since March 21 2019
+ * Creates a simulated battle royale
+ */
+
+class BattleRoyaleFormatted {
+  public static void main(String[] args) throws Exception {
+    Scanner input = new Scanner(System.in);
+    System.out.println("What is your file name? (include the txt)");
+    String fileName = input.nextLine();
+    
+    // Initialize variables
+    int length = arraySize(fileName);
+    char[][] mapGrid = readMap(fileName, length);
+    int[] playerCoords = locatePlayer(mapGrid,length);
+    int center = length/2;
+    int[][] playerTrack = new int[(length/2)+2][2];
+    playerTrack[0][0] = 0;
+    int[][] finalPath = new int[(length/2)+2][2];
+    finalPath[0][0] = -1;
+    finalPath[0][1] = 1;
+    int[][] storage = new int[(length/2)+2][2];
+    storage[0][1] = 1;
+    int round = 0;
+    
+    for (int i = 0; i < length; i++) {
+      for (int j = 0; j < length; j++) {
+        if ((Math.abs(i-1-center) + Math.abs(j-center) <= (length/2)-round) && mapGrid[i][j] == '.'){
+          playerCoords[0] = i;
+          playerCoords[1] = j;
+          storage = playerPath(length, center, playerCoords, mapGrid, round, playerTrack);
+        }
+        if (storage[0][0] > finalPath[0][0] && storage[0][1] != 1) {
+          finalPath = copyPath(storage, length);
+        }
+      }
+    }
+
+    //modify existing array to output
+    for (int i = 1; i < finalPath.length; i++) {
+      if (finalPath[i][0]!= 0 && finalPath[i][1] != 0){
+        mapGrid[finalPath[i][0]][finalPath[i][1]] = 'v';
+      }
+    }
+    
+    mapGrid[finalPath[1][0]][finalPath[1][1]] = 'P';
+        
+    if (finalPath[0][1] != 1) {
+      mapGrid[center][center] = 'F';
+      for (int i = 0; i < length; i++) {
+        for (int j = 0; j < length; j++) {
+          System.out.print(mapGrid[i][j] + " ");
+        }
+        System.out.println();
+      }
+      System.out.println("You collected " + finalPath[0][0] + " pieces of loot.");
+    } else {
+      System.out.println("You are doomed");
+    }
+    input.close();
+  }
+  
+  public static int arraySize(String fileName) throws Exception {
+    File map = new File(fileName);
+    Scanner input = new Scanner(map);
+    String firstLine = input.nextLine();
+    String firstLineNoSpace = "";
+    for (int i = 0; i < firstLine.length(); i++) {
+      if (firstLine.substring(i, i+1).equals(" ")) {
+        firstLineNoSpace = firstLineNoSpace + "";
+      } else {
+        firstLineNoSpace = firstLineNoSpace + firstLine.substring(i,i+1);
+      }
+    }
+    input.close();
+    return firstLineNoSpace.length();
+  }
+    
+  public static char[][] readMap(String fileName, int length) throws Exception{
+    File map = new File(fileName);
+    Scanner input = new Scanner(map);
+    
+    String[] oneDArray = new String[length];
+    for (int h = 0; h < length; h++) {
+      String line = input.nextLine();
+      String lineNoSpace = "";
+      for (int i = 0; i < line.length(); i++) {
+        if (line.substring(i, i+1).equals(" ")) {
+          lineNoSpace = lineNoSpace + "";
+        } else {
+          lineNoSpace = lineNoSpace + line.substring(i,i+1);
+        }
+      }
+      oneDArray[h] = lineNoSpace;
+    }
+    
+    char[][] twoDArray = new char[length][length];
+    for (int i = 0; i < length; i++) {
+      for (int j = 0; j < length; j++) {
+        twoDArray[i][j] = oneDArray[i].charAt(j);
+      }
+    }
+  input.close();
+  return twoDArray;
+  }
+
+  //method that finds player location
+  public static int[] locatePlayer(char[][] twoDArray,int length){
+    int[] playerCoords = new int[2];
+    for (int i = 0; i < length; i++) {
+      for (int j = 0; j < length; j++) {
+        if (twoDArray[i][j]==('P')) {
+          playerCoords[0] = i;
+          playerCoords[1] = j;
+          return playerCoords;
+        }
+      }
+    }
+    return playerCoords;
+  }
+  
+  //method that copies the map array
+  public static char[][] copyArray(char[][] mapGrid, int length) {
+    char[][] copiedMapGrid = new char[length][length];
+    for (int i = 0; i < length; i++) {
+      for (int j = 0; j < length; j++) {
+        copiedMapGrid[i][j] = mapGrid[i][j];
+      }
+    }
+    return copiedMapGrid;
+  }
+  
+  //method that copies the player tracker
+  public static int[][] copyPath(int[][] tracker, int length) {
+    int[][] copiedTracker = new int[(length/2)+2][2];
+    for (int i = 0; i < (length/2)+2; i++) {
+      for (int j = 0; j < 2; j++) {
+        copiedTracker[i][j] = tracker[i][j];
+      }
+    }
+    return copiedTracker;
+  }
+  
+  public static int[][] greatestLoot(int[][] up, int[][] down, int[][] left, int[][] right, int length) {
+    int highest = -1;
+    int[][] returned;
+    returned = copyPath(right,length);
+    
+    // Compare the amount of loot per path
+    if (up[0][1] != 1 && up[0][0] > highest) {
+      returned = copyPath(up,length);
+      highest = up[0][0];
+    }
+    if (down[0][1] != 1 && down[0][0] > highest) {
+      returned = copyPath(down,length);
+      highest = down[0][0];
+    }
+    
+    if (left[0][1] != 1 && left[0][0] > highest) {
+      returned = copyPath(left,length);
+      highest = left[0][0];
+    }
+    
+    if (right[0][1] != 1 && right[0][0] > highest) {
+      returned = copyPath(right,length);
+      highest = right[0][0];
+    } 
+
+    return returned; 
+  }
+  
+  public static int[][] playerPath(int length, int center, int[] playerCoords, char[][] mapGrid, int round, int[][] currentPath) {
+    int[][] up = copyPath(currentPath, length);
+    int[][] down = copyPath(currentPath, length);
+    int[][] left = copyPath(currentPath, length);
+    int[][] right = copyPath(currentPath, length);
+    int playerX = playerCoords[0];
+    int playerY = playerCoords[1];
+    
+    //return something at the end or near the end if there is no possible move
+    if ((playerX == center && playerY == center && round >= length/2-1) || (round >= length/2)) {
+      up[round+1][0] = center;
+      up[round+1][1] = center;
+      down[round+1][0] = center;
+      down[round+1][1] = center;
+      left[round+1][0] = center;
+      left[round+1][1] = center;
+      right[round+1][0] = center;
+      right[round+1][1] = center;
+      return greatestLoot(up, down, left, right, length);
+    }
+    
+    //4 if statements for all 4 directions
+    //if up is safe
+    if (playerX != 0 && Math.abs(playerX-1-center) + Math.abs(playerY-center) < (length/2)-round) {
+      char[][] copiedMapGrid = copyArray(mapGrid, length);
+      int time = 1;
+      // if there is loot
+      if (copiedMapGrid[playerX-1][playerY] != '.') {
+        up[0][0] += (copiedMapGrid[playerX-1][playerY] - '0');
+        time += ((copiedMapGrid[playerX-1][playerY] - '0')-1);
+      }
+      
+      //swap locations on the map
+      copiedMapGrid[playerX-1][playerY] = 'P';
+      copiedMapGrid[playerX][playerY] = '.';
+      
+      //new player location
+      int[] newPlayerCoords = locatePlayer(copiedMapGrid, length);
+      
+      //update tracker
+      if (Math.abs((playerX-1)-center) + Math.abs(playerY-center) < (length/2)-round-(time-1)) {
+        //add player location to player tracker
+        for (int i = 0; i < time; i++) {
+          up[round+1+i][0] = playerX;
+          up[round+1+i][1] = playerY;
+        }
+        up = playerPath(length, center, newPlayerCoords, copiedMapGrid, round+time, up);  
+      } else {
+        up[0][1] = 1;
+      }
+    } else {
+      up[0][1] = 1;
+    }
+    
+    //if down is safe
+    if (playerX != length && Math.abs(playerX+1-center) + Math.abs(playerY-center) < (length/2)-round) {
+      char[][] copiedMapGrid = copyArray(mapGrid, length);
+      int time = 1;
+      // if there is loot
+      if (copiedMapGrid[playerX+1][playerY] != '.') {
+        down[0][0] += (copiedMapGrid[playerX+1][playerY] - '0');
+        time += ((copiedMapGrid[playerX+1][playerY] - '0')-1);
+      }
+      
+      //swap locations on the map
+      copiedMapGrid[playerX+1][playerY] = 'P';
+      copiedMapGrid[playerX][playerY] = '.';
+      
+      //new player location
+      int[] newPlayerCoords = locatePlayer(copiedMapGrid, length);
+      
+      //update tracker
+      if (Math.abs((playerX+1)-center) + Math.abs(playerY-center) < (length/2)-round-(time-1)) {
+        //add player location to player tracker
+        for (int i = 0; i < time; i++) {
+          down[round+1+i][0] = playerX;
+          down[round+1+i][1] = playerY;
+        }
+        down = playerPath(length, center, newPlayerCoords, copiedMapGrid, round+time, down);  
+      } else {
+        down[0][1] = 1;
+      }
+    } else {
+      down[0][1] = 1;
+    }
+    
+      //if left is safe
+    if (playerY != 0 && Math.abs(playerX-center) + Math.abs(playerY-1-center) < (length/2)-round) {
+      char[][] copiedMapGrid = copyArray(mapGrid, length);
+      
+      int time = 1;
+      // if there is loot
+      if (copiedMapGrid[playerX][playerY-1] != '.') {
+        left[0][0] += (copiedMapGrid[playerX][playerY-1] - '0');
+        time += ((copiedMapGrid[playerX][playerY-1] - '0')-1);
+      }
+      
+      //swap locations on the map
+      copiedMapGrid[playerX][playerY-1] = 'P';
+      copiedMapGrid[playerX][playerY] = '.';
+      
+      //new player location
+      int[] newPlayerCoords = locatePlayer(copiedMapGrid, length);
+      
+      //update tracker
+      if (Math.abs((playerX)-center) + Math.abs(playerY-1-center) < (length/2)-round-(time-1)) {
+        //add player location to player tracker
+        for (int i = 0; i < time; i++) {
+          left[round+1+i][0] = playerX;
+          left[round+1+i][1] = playerY;
+        }
+        left = playerPath(length, center, newPlayerCoords, copiedMapGrid, round+time, left);  
+      } else {
+        left[0][1] = 1;
+      }
+    } else {
+      left[0][1] = 1;
+    }
+
+
+    //if right is safe
+    if (playerY != length && Math.abs(playerX-center) + Math.abs(playerY+1-center) < (length/2)-round) {
+      char[][] copiedMapGrid = copyArray(mapGrid, length);
+      int time = 1;
+      
+      // if there is loot
+      if (copiedMapGrid[playerX][playerY+1] != '.') {
+        right[0][0] += (copiedMapGrid[playerX][playerY+1] - '0');
+        time += ((copiedMapGrid[playerX][playerY+1] - '0')-1);
+      }
+      
+      //swap locations on the map
+      copiedMapGrid[playerX][playerY+1] = 'P';
+      copiedMapGrid[playerX][playerY] = '.';
+      
+      //new player location
+      int[] newPlayerCoords = locatePlayer(copiedMapGrid, length);
+      
+      //update tracker
+      if (Math.abs((playerX)-center) + Math.abs(playerY+1-center) < (length/2)-round-(time-1)) {
+        //add player location to player tracker
+        for (int i = 0; i < time; i++) {
+          right[round+1+i][0] = playerX;
+          right[round+1+i][1] = playerY;
+        }
+        right = playerPath(length, center, newPlayerCoords, copiedMapGrid, round+time, right);  
+      } else {
+        right[0][1] = 1;
+      }
+    } else {
+      right[0][1] = 1;
+    }
+    
+    //center case where you cannot move
+    if (up[0][1] == 1 && down[0][1] == 1 && left[0][1] == 1 && right[0][1] == 1 && playerX == center && playerY == center) {
+      up[0][1] = 0;
+      up[0][0] = 0;
+      up[1][0] = center;
+      up[1][1] = center;
+      return up;
+    }
+    
+    return greatestLoot(up, down, left, right, length);
+  }
+}
